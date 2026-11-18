@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+
+# Node / dashboard
+node_modules/
+*.tsbuildinfo
+
+# Runtime state
+~/.agentguard/
+.agentguard.pid
+*.db
+*.db-shm
+*.db-wal
+
+# Editor / agent runtime
+.DS_Store
+.idea/
+.vscode/
+.opencode/
+.taste-skill/
+.agents/
+.aws/
+.codex/
+
+# Independent repositories
+site/
+
+# Local planning and pasted images
+/hackathon-plan/
+/Pasted image.png

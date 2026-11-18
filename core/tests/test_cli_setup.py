@@ -1,0 +1,151 @@
+"""Tests for `agentguard setup` auto-configuration and idempotent hook merging."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from agentguard.cli import _repo_root, _setup_claude, _setup_codex, _setup_opencode, check_hardware
+
+
+def test_setup_integrations_idempotent_merge(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("AGENTGUARD_HOME", str(tmp_path / "ag_home"))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(tmp_path / "claude"))
+    monkeypatch.setenv("CODEX_HOME", str(tmp_path / "codex"))
+
+    # Pre-seed user settings to verify non-destructive merging
+    claude_dir = tmp_path / "claude"
+    claude_dir.mkdir(parents=True)
+    (claude_dir / "settings.json").write_text(
+        json.dumps(
+            {
+                "theme": "dark",
+                "hooks": {
+                    "PreToolUse": [
+                        {"hooks": [{"type": "command", "command": "echo existing-user-hook"}]}
+                    ]
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    codex_dir = tmp_path / "codex"
+    codex_dir.mkdir(parents=True)
+    (codex_dir / "hooks.json").write_text(
+        json.dumps(
+            {
+                "hooks": {
+                    "PreToolUse": [
+                        {"hooks": [{"type": "command", "command": "echo existing-codex-hook"}]}
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    repo = _repo_root()
+    assert _setup_opencode(repo) is True
+    assert _setup_claude(repo) is True
+    assert _setup_codex(repo) is True
+
+    # Run a second time to verify idempotency (no duplicate AgentGuard hook entries)
+    assert _setup_claude(repo) is True
+    assert _setup_codex(repo) is True
+
+    opencode_plugin = tmp_path / "xdg" / "opencode" / "plugins" / "agentguard" / "index.js"
+    assert opencode_plugin.is_file()
+
+    claude_settings = json.loads((claude_dir / "settings.json").read_text(encoding="utf-8"))
+    assert claude_settings["theme"] == "dark"
+    assert len(claude_settings["hooks"]["PreToolUse"]) == 2
+    assert len(claude_settings["hooks"]["SessionStart"]) == 1
+
+    codex_hooks = json.loads((codex_dir / "hooks.json").read_text(encoding="utf-8"))
+    assert len(codex_hooks["hooks"]["PreToolUse"]) == 2
+    assert len(codex_hooks["hooks"]["SessionStart"]) == 1
+
+
+def test_check_hardware_pass_and_fail(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("AGENTGUARD_MIN_RAM_MB", "128")
+    monkeypatch.setenv("AGENTGUARD_MIN_AVAIL_RAM_MB", "64")
+    monkeypatch.setenv("AGENTGUARD_MIN_DISK_MB", "64")
+    monkeypatch.setenv("AGENTGUARD_MIN_CPU_CORES", "1")
+    ok_res = check_hardware("llama-guard3:1b", target_dir=str(tmp_path))
+    assert ok_res["compatible"] is True
+    assert ok_res["cpu"]["pass"] is True
+    assert ok_res["ram"]["pass"] is True
+    assert ok_res["storage"]["pass"] is True
+
+    monkeypatch.setenv("AGENTGUARD_MIN_RAM_MB", "9999999")
+    monkeypatch.setenv("AGENTGUARD_MIN_DISK_MB", "9999999")
+    monkeypatch.setenv("AGENTGUARD_MIN_CPU_CORES", "512")
+    fail_res = check_hardware("llama-guard3:1b", target_dir=str(tmp_path))
+    assert fail_res["compatible"] is False
+    assert fail_res["cpu"]["pass"] is False
+    assert fail_res["ram"]["pass"] is False
+    assert fail_res["storage"]["pass"] is False
+
+
+def test_unsetup_hooks_clean_removal(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("AGENTGUARD_HOME", str(tmp_path / "ag_home"))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(tmp_path / "claude"))
+    monkeypatch.setenv("CODEX_HOME", str(tmp_path / "codex"))
+
+    from agentguard.cli import _unsetup_hooks
+
+    # Pre-seed user hooks and agentguard hooks
+    claude_dir = tmp_path / "claude"
+    claude_dir.mkdir(parents=True)
+    (claude_dir / "settings.json").write_text(
+        json.dumps(
+            {
+                "theme": "dark",
+                "hooks": {
+                    "PreToolUse": [
+                        {"hooks": [{"type": "command", "command": "echo existing-user-hook"}]},
+                        {"hooks": [{"type": "command", "command": "python3 /path/agentguard_hook.py"}]},
+                    ]
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    codex_dir = tmp_path / "codex"
+    codex_dir.mkdir(parents=True)
+    (codex_dir / "hooks.json").write_text(
+        json.dumps(
+            {
+                "hooks": {
+                    "PreToolUse": [
+                        {"hooks": [{"type": "command", "command": "echo existing-codex-hook"}]},
+                        {"hooks": [{"type": "command", "command": "python3 /path/agentguard_codex_hook.py"}]},
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    opencode_plugin_dir = tmp_path / "xdg" / "opencode" / "plugins" / "agentguard"
+    opencode_plugin_dir.mkdir(parents=True)
+    (opencode_plugin_dir / "index.js").write_text("console.log('plugin')")
+
+    _unsetup_hooks()
+
+    assert not opencode_plugin_dir.exists()
+
+    claude_settings = json.loads((claude_dir / "settings.json").read_text(encoding="utf-8"))
+    assert claude_settings["theme"] == "dark"
+    assert len(claude_settings["hooks"]["PreToolUse"]) == 1
+    assert "agentguard_hook.py" not in claude_settings["hooks"]["PreToolUse"][0]["hooks"][0]["command"]
+
+    codex_hooks = json.loads((codex_dir / "hooks.json").read_text(encoding="utf-8"))
+    assert len(codex_hooks["hooks"]["PreToolUse"]) == 1
+    assert "agentguard_codex_hook.py" not in codex_hooks["hooks"]["PreToolUse"][0]["hooks"][0]["command"]
+
+
