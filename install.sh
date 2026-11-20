@@ -11,6 +11,7 @@
 # Environment overrides:
 #   AGENTGUARD_HOME            Base runtime dir (default: ~/.agentguard)
 #   AGENTGUARD_REPO_URL        Git URL when running via curl | bash
+#   AGENTGUARD_BRANCH          Repository branch to clone (default: main)
 #   AGENTGUARD_PORT            Service port (default: 8907)
 #   AGENTGUARD_MODEL           Ollama AI model to install (default: llama-guard3:1b)
 #   AGENTGUARD_MIN_RAM_MB      Override minimum total RAM in MB (default: 3584 for 1b)
@@ -25,6 +26,7 @@ AGENTGUARD_PORT="${AGENTGUARD_PORT:-8907}"
 AGENTGUARD_MODEL="${AGENTGUARD_MODEL:-llama-guard3:1b}"
 OLLAMA_HOST_URL="${OLLAMA_HOST_URL:-http://127.0.0.1:11434}"
 REPO_URL="${AGENTGUARD_REPO_URL:-https://github.com/Sajibv1/AgentGuard.git}"
+AGENTGUARD_BRANCH="${AGENTGUARD_BRANCH:-main}"
 BIN_DIR="${HOME}/.local/bin"
 
 START_DAEMON=1
@@ -474,13 +476,13 @@ else
     rm -rf "$APP_DIR"
     CLONED=0
     if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-      gh repo clone Sajibv1/AgentGuard "$APP_DIR" -- --depth 1 2>/dev/null && CLONED=1
+      gh repo clone Sajibv1/AgentGuard "$APP_DIR" -- --depth 1 --branch "$AGENTGUARD_BRANCH" 2>/dev/null && CLONED=1
     fi
     if [[ "$CLONED" != "1" && -n "${GITHUB_TOKEN:-}" ]]; then
-      git clone --depth 1 "https://${GITHUB_TOKEN}@github.com/Sajibv1/AgentGuard.git" "$APP_DIR" 2>/dev/null && CLONED=1
+      git clone --depth 1 --branch "$AGENTGUARD_BRANCH" "https://${GITHUB_TOKEN}@github.com/Sajibv1/AgentGuard.git" "$APP_DIR" 2>/dev/null && CLONED=1
     fi
     if [[ "$CLONED" != "1" ]]; then
-      git clone --depth 1 "$REPO_URL" "$APP_DIR"
+      git clone --depth 1 --branch "$AGENTGUARD_BRANCH" "$REPO_URL" "$APP_DIR"
     fi
   fi
 fi

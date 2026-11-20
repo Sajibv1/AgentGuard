@@ -17,7 +17,7 @@ $ErrorActionPreference = "Stop"
 if (-not $Model) { $Model = "llama-guard3:1b" }
 if (-not $Port) { $Port = "8907" }
 if (-not $RepoUrl) { $RepoUrl = "https://github.com/Sajibv1/AgentGuard.git" }
-if (-not $Branch) { $Branch = "master" }
+if (-not $Branch) { $Branch = "main" }
 
 $AgentGuardHome = if ($env:AGENTGUARD_HOME) { $env:AGENTGUARD_HOME } else { "$env:USERPROFILE\.agentguard" }
 $LocalApp = if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { "$env:USERPROFILE\AppData\Local" }
