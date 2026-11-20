@@ -2,7 +2,7 @@
 # AgentGuard Clean Uninstaller
 #
 # Usage (remote one-liner):
-#   curl -fsSL https://raw.githubusercontent.com/Sajib023/AgentGuard/main/uninstall.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/Sajibv1/AgentGuard/main/uninstall.sh | bash
 #
 # Usage (local):
 #   ./uninstall.sh [-y|--yes] [--keep-data] [--purge-model]

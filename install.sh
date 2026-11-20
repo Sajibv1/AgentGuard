@@ -2,10 +2,10 @@
 # AgentGuard One-Command Installer & Hardware-Verified AI Model Bootstrapper
 #
 # Usage (remote one-liner):
-#   curl -fsSL https://raw.githubusercontent.com/Sajib023/AgentGuard/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/Sajibv1/AgentGuard/main/install.sh | bash
 #
 # Usage (with options):
-#   curl -fsSL https://raw.githubusercontent.com/Sajib023/AgentGuard/main/install.sh | bash -s -- [--model llama-guard3:1b] [--lightweight] [--yes]
+#   curl -fsSL https://raw.githubusercontent.com/Sajibv1/AgentGuard/main/install.sh | bash -s -- [--model llama-guard3:1b] [--lightweight] [--yes]
 #   ./install.sh [--model llama-guard3:1b] [--lightweight] [--yes] [--no-start]
 #
 # Environment overrides:
@@ -24,7 +24,7 @@ AGENTGUARD_HOME="${AGENTGUARD_HOME:-$HOME/.agentguard}"
 AGENTGUARD_PORT="${AGENTGUARD_PORT:-8907}"
 AGENTGUARD_MODEL="${AGENTGUARD_MODEL:-llama-guard3:1b}"
 OLLAMA_HOST_URL="${OLLAMA_HOST_URL:-http://127.0.0.1:11434}"
-REPO_URL="${AGENTGUARD_REPO_URL:-https://github.com/Sajib023/AgentGuard.git}"
+REPO_URL="${AGENTGUARD_REPO_URL:-https://github.com/Sajibv1/AgentGuard.git}"
 BIN_DIR="${HOME}/.local/bin"
 
 START_DAEMON=1
@@ -474,10 +474,10 @@ else
     rm -rf "$APP_DIR"
     CLONED=0
     if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-      gh repo clone Sajib023/AgentGuard "$APP_DIR" -- --depth 1 2>/dev/null && CLONED=1
+      gh repo clone Sajibv1/AgentGuard "$APP_DIR" -- --depth 1 2>/dev/null && CLONED=1
     fi
     if [[ "$CLONED" != "1" && -n "${GITHUB_TOKEN:-}" ]]; then
-      git clone --depth 1 "https://${GITHUB_TOKEN}@github.com/Sajib023/AgentGuard.git" "$APP_DIR" 2>/dev/null && CLONED=1
+      git clone --depth 1 "https://${GITHUB_TOKEN}@github.com/Sajibv1/AgentGuard.git" "$APP_DIR" 2>/dev/null && CLONED=1
     fi
     if [[ "$CLONED" != "1" ]]; then
       git clone --depth 1 "$REPO_URL" "$APP_DIR"
